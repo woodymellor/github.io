@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ironsworn: Assassin — Loot Generator</title>
+<style>
+  :root {
+    --bg: #111316;
+    --panel: #1a1d21;
+    --panel2: #20242a;
+    --text: #e8e5dc;
+    --muted: #a7a39a;
+    --accent: #d2a85a;
+    --accent2: #8e6b35;
+    --border: #343942;
+    --danger: #9b5a52;
+    --good: #7f9b72;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top, #24272b 0, var(--bg) 42rem);
+    color: var(--text);
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    width: min(1100px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 36px 0 60px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    letter-spacing: .04em;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    margin: 8px auto 0;
+    max-width: 700px;
+    color: var(--muted);
+    font-size: 1.05rem;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 22px;
+  }
+
+  label {
+    display: block;
+    color: var(--muted);
+    font-size: .88rem;
+    margin-bottom: 5px;
+  }
+
+  select, input[type="number"], button {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    font: inherit;
+  }
+
+  select, input[type="number"] {
+    background: var(--panel2);
+    color: var(--text);
+    padding: 8px 10px;
+  }
+
+  .rarity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .check {
+    margin: 0;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .check input { accent-color: var(--accent); }
+
+  .rarity-note {
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--panel2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .rarity-note strong { color: var(--accent); font-size: .9rem; }
+  .rarity-note span { color: var(--muted); font-size: .78rem; }
+
+  .buttons {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  button {
+    cursor: pointer;
+    padding: 9px 14px;
+    color: var(--text);
+    background: var(--panel2);
+    transition: transform .08s ease, background .15s ease;
+  }
+
+  button:hover { background: #2a2f36; }
+  button:active { transform: translateY(1px); }
+
+  .primary {
+    background: var(--accent2);
+    border-color: var(--accent);
+    color: #fff8e8;
+    font-weight: bold;
+  }
+
+  .primary:hover { background: #a37b3e; }
+
+  .results {
+    display: grid;
+    gap: 14px;
+  }
+
+  .empty {
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 42px 20px;
+    text-align: center;
+    color: var(--muted);
+    background: rgba(26,29,33,.65);
+  }
+
+  .box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .box-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, #22262b, #1a1d21);
+  }
+
+  .box-head h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .box-number {
+    color: var(--accent);
+    font-size: .9rem;
+    white-space: nowrap;
+  }
+
+  .loot-list {
+    display: grid;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .item {
+    background: var(--panel);
+    padding: 16px 18px;
+  }
+
+  .item-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .item-name {
+    font-weight: bold;
+    font-size: 1.08rem;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .legendary { color: #e7c77e; border-color: #80622e; }
+  .superior { color: #b8c99f; border-color: #526344; }
+  .relic { color: #bca4d6; border-color: #655079; }
+  .common { color: #b8b5ad; }
+  .resource { color: #9bb4c8; border-color: #4d6578; }
+
+  .tags {
+    margin-top: 7px;
+    color: var(--accent);
+    font-size: .9rem;
+  }
+
+  .desc {
+    margin: 7px 0 0;
+    color: var(--muted);
+  }
+
+  .ability {
+    margin-top: 9px;
+    padding: 9px 11px;
+    background: #15181b;
+    border-left: 3px solid var(--accent2);
+    color: #d9d4c8;
+  }
+
+  .story {
+    padding: 16px 18px;
+    background: #17191c;
+    border-top: 1px solid var(--border);
+  }
+
+  .story strong { color: var(--accent); }
+
+  .story p {
+    margin: 5px 0;
+    color: var(--muted);
+  }
+
+  .summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .summary span {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: .86rem;
+    color: var(--muted);
+  }
+
+  footer {
+    margin-top: 25px;
+    color: #77756f;
+    text-align: center;
+    font-size: .82rem;
+  }
+
+  @media (max-width: 800px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 520px) {
+    .wrap { width: min(100% - 20px, 1100px); padding-top: 22px; }
+    .controls { grid-template-columns: 1fr; }
+    .buttons { grid-template-columns: 1fr; }
+    .item-top { flex-direction: column; gap: 5px; }
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    .controls, footer { display: none; }
+    .box { break-inside: avoid; border-color: #aaa; }
+    .item, .story { background: white; color: black; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ironsworn: Assassin</h1>
+    <div class="subtitle">
+      Loot Box Generator — choose exactly how rare your finds are, or let the oracle decide. Rare and Legendary are deliberately stingy.
+    </div>
+  </header>
+
+  <section class="controls">
+    <div>
+      <label for="boxes">Loot boxes</label>
+      <input id="boxes" type="number" min="1" max="20" value="1">
+    </div>
+
+    <div>
+      <label for="size">Box size</label>
+      <select id="size">
+        <option value="small">Small — 2 items</option>
+        <option value="standard" selected>Standard — 3 items</option>
+        <option value="large">Large — 5 items</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="location">Location</label>
+      <select id="location">
+        <option value="mixed">Mixed / Unknown</option>
+        <option value="ruin">Ancient Ruin</option>
+        <option value="fortress">Fortress / Keep</option>
+        <option value="monastery">Monastery / Temple</option>
+        <option value="settlement">Settlement / Manor</option>
+        <option value="bandit">Bandit Hideout</option>
+        <option value="ship">Ship / Harbour</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Special item rarity</label>
+      <div class="rarity-grid">
+        <label class="check"><input type="radio" name="rarity" value="random" checked> Random</label>
+        <label class="check"><input type="radio" name="rarity" value="common"> Common</label>
+        <label class="check"><input type="radio" name="rarity" value="superior"> Rare</label>
+        <label class="check"><input type="radio" name="rarity" value="legendary"> Legendary</label>
+      </div>
+    </div>
+
+    <div>
+      <label for="resourceChance">Resource chance</label>
+      <select id="resourceChance">
+        <option value="low">Low</option>
+        <option value="normal" selected>Normal</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+
+    <div class="rarity-note">
+      <strong>Random rarity</strong>
+      <span>Common is the default; Rare is uncommon; Legendary is extremely rare.</span>
+    </div>
+
+    <div class="buttons">
+      <button class="primary" onclick="generateBoxes()">Generate Loot</button>
+      <button onclick="generateOneLegendary()">Generate Legendary Item</button>
+      <button onclick="window.print()">Print / Save as PDF</button>
+    </div>
+  </section>
+
+  <main id="results" class="results">
+    <div class="empty">
+      Choose your loot-box settings and generate a discovery.
+    </div>
+  </main>
+
+  <footer>
+    Designed as a lightweight companion for Ironsworn-style fiction-first play.
+  </footer>
+</div>
+
+<script>
+const data = {
+  weapons: [
+    ["Iron Seax", ["Fast", "Concealable"], "A practical fighting knife, easy to hide beneath a cloak."],
+    ["Frankish Longsword", ["Precise", "Defensive"], "A finely balanced sword taken from a foreign warrior."],
+    ["Heavy Dane Axe", ["Heavy", "Brutal"], "A broad-headed axe made to break shields and armour."],
+    ["Hunter's Bow", ["Ranged", "Hunting", "Silent"], "A compact bow suited to woodland stalking."],
+    ["Spear of the Watch", ["Reach", "Defensive"], "A sturdy spear once carried by a settlement guard."],
+    ["Pair of Throwing Knives", ["Ranged", "Concealable", "Precise"], "Balanced knives designed for sudden attacks."],
+    ["Old Roman Gladius", ["Fast", "Ancient"], "A short sword bearing the marks of a forgotten legion."],
+    ["Reinforced Shield", ["Defensive", "Heavy"], "A battered shield strengthened by an experienced craftsperson."]
+  ],
+
+  armour: [
+    ["Leather Scout's Jerkin", ["Stealthy", "Light"], "Flexible protection that does not greatly restrict movement."],
+    ["Mail Shirt", ["Defensive", "Heavy"], "A well-made shirt of interlocking iron rings."],
+    ["Raven Cloak", ["Stealthy", "Disguise"], "A dark travelling cloak excellent for breaking up your silhouette."],
+    ["Foreign Scale Armour", ["Defensive", "Ancient"], "Unfamiliar armour made from overlapping metal scales."]
+  ],
+
+  tools: [
+    ["Climbing Kit", ["Climbing", "Exploration"], "Rope, hooks and grips suited to scaling old stonework."],
+    ["Disguise Kit", ["Disguise", "Stealthy"], "Pigments, cloth and small props for changing your appearance."],
+    ["Fine Lockpicks", ["Lockpicking", "Concealable"], "A professional set of delicate picks."],
+    ["Field Medicine Kit", ["Medical", "Survival"], "Bandages, herbs and basic surgical instruments."],
+    ["Sailor's Kit", ["Sailing", "Survival"], "Useful cordage, needles, wax and practical maritime tools."],
+    ["Scholar's Case", ["Scholarly", "Ancient"], "Ink, parchment, magnifying glass and reference notes."]
+  ],
+
+  relics: [
+    ["Bronze Eye Pendant", ["Valuable", "Mysterious"], "An ancient pendant depicting a single staring eye."],
+    ["Roman Legionary Seal", ["Royal", "Ancient"], "A heavy signet bearing the emblem of a long-dead commander."],
+    ["Ivory Saint's Reliquary", ["Religious", "Valuable"], "A tiny decorated container whose contents are unknown."],
+    ["Broken Royal Signet", ["Royal", "Mysterious"], "A damaged seal belonging to a dynasty thought extinct."],
+    ["Carved Stone Tablet", ["Ancient", "Scholarly"], "A fragment of writing in an unfamiliar script."],
+    ["Jewelled Torc", ["Valuable", "Foreign"], "An ornate neck-ring worked with animal motifs."]
+  ],
+
+  materials: [
+    ["Crafting Materials ×2", [], "Useful timber, leather, metal and other salvage."],
+    ["Crafting Materials ×3", [], "An unusually good haul of useful resources."],
+    ["Rare Material ×1", [], "An exceptional material whose exact nature can be established in play."],
+    ["Coin ×1", [], "A modest amount of immediately useful wealth."],
+    ["Coin ×2", [], "A worthwhile purse of coin."],
+    ["Coin ×3", [], "A substantial stash of spendable wealth."]
+  ],
+
+  locations: {
+    ruin: ["Roman coins", "buried weapon", "forgotten cult relic", "architectural fragment"],
+    fortress: ["military equipment", "officer's seal", "captured weapon", "war chest"],
+    monastery: ["religious relic", "illuminated manuscript", "healing supplies", "pilgrim's treasure"],
+    settlement: ["merchant goods", "household valuables", "local weapon", "stored coin"],
+    bandit: ["stolen goods", "mismatched weapons", "hidden purse", "contraband relic"],
+    ship: ["foreign weapon", "trade goods", "sailor's tools", "captain's keepsake"],
+    mixed: ["old treasure", "useful equipment", "forgotten relic", "stored supplies"]
+  }
+};
+
+const names = {
+  weapon: ["The Ashen Fang", "Wolf-Bite", "The King's Tooth", "Raven's Talon", "Serpent's Fang", "Oathbreaker"],
+  armour: ["Mantle of the Raven", "Wolfskin of the North", "The Veiled Coat", "Scale of the Old Guard"],
+  tool: ["Ghost-Key", "Raven's Kit", "The Climber's Hand", "Veilmaker's Case"],
+  relic: ["The Bronze Eye", "Seal of the Forgotten King", "The Veiled Crown", "The Black Sun", "Codex Fragment"]
+};
+
+const legendaryAbilities = [
+  "When you Strike from complete surprise, a strong hit lets you immediately Face Danger +Shadow to escape before you are identified.",
+  "When you Secure an Advantage by exploiting an enemy's distraction, take +1 momentum on a strong hit.",
+  "When you Face Danger using this item's qualities to remain unseen, a weak hit may be turned into a strong hit by suffering -1 momentum.",
+  "Once per scene, when this item's qualities give you a decisive fictional advantage, reroll one die.",
+  "When you Gather Information through the item's history or reputation, add +1 if its story is directly relevant.",
+  "When you Clash while using this item exactly as its legend suggests, count a weak hit as a strong hit but pay a narrative price."
+];
+
+const tagSets = {
+  weapon: [
+    ["Fast", "Precise", "Concealable"],
+    ["Heavy", "Brutal", "Defensive"],
+    ["Silent", "Ranged", "Hunting"],
+    ["Reach", "Precise", "Ancient"]
+  ],
+  armour: [
+    ["Stealthy", "Light", "Concealing"],
+    ["Defensive", "Heavy", "Reinforced"],
+    ["Ancient", "Royal", "Intimidating"],
+    ["Disguise", "Stealthy", "Foreign"]
+  ],
+  tool: [
+    ["Concealable", "Precise", "Professional"],
+    ["Ancient", "Scholarly", "Mysterious"],
+    ["Stealthy", "Disguise", "Practical"]
+  ],
+  relic: [
+    ["Ancient", "Mysterious", "Valuable"],
+    ["Royal", "Foreign", "Valuable"],
+    ["Religious", "Ancient", "Dangerous"],
+    ["Scholarly", "Mysterious", "Forgotten"]
+  ]
+};
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function chance(p) {
+  return Math.random() < p;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+  }[c]));
+}
+
+function rollLootType(quality) {
+  const r = Math.random();
+  if (quality === "ordinary") {
+    if (r < .28) return "materials";
+    if (r < .52) return "coin";
+    if (r < .80) return "weapon";
+    if (r < .94) return "tool";
+    return "relic";
+  }
+  if (quality === "exceptional") {
+    if (r < .16) return "materials";
+    if (r < .28) return "coin";
+    if (r < .53) return "weapon";
+    if (r < .67) return "armour";
+    if (r < .80) return "tool";
+    if (r < .91) return "relic";
+    return "legendary";
+  }
+  if (r < .20) return "materials";
+  if (r < .32) return "coin";
+  if (r < .52) return "weapon";
+  if (r < .66) return "armour";
+  if (r < .79) return "tool";
+  if (r < .93) return "relic";
+  return "legendary";
+}
+
+function selectedRarity() {
+  return document.querySelector('input[name="rarity"]:checked')?.value || "random";
+}
+
+/*
+  Random rarity deliberately makes Rare and Legendary uncommon.
+  Approximate distribution for a special item:
+    Common     82%
+    Rare       16%
+    Legendary   2%
+  This is intentionally much stingier than typical video-game loot.
+*/
+function randomRarity() {
+  const r = Math.random();
+  if (r < 0.82) return "Common";
+  if (r < 0.98) return "Rare";
+  return "Legendary";
+}
+
+function getRarity() {
+  const choice = selectedRarity();
+  if (choice === "common") return "Common";
+  if (choice === "superior") return "Rare";
+  if (choice === "legendary") return "Legendary";
+  return randomRarity();
+}
+
+function rollLootType() {
+  const resource = document.getElementById("resourceChance").value;
+  const r = Math.random();
+
+  const resourceCutoff =
+    resource === "low" ? 0.18 :
+    resource === "high" ? 0.42 : 0.30;
+
+  if (r < resourceCutoff * 0.55) return "materials";
+  if (r < resourceCutoff) return "coin";
+
+  const x = Math.random();
+  if (x < .38) return "weapon";
+  if (x < .56) return "armour";
+  if (x < .76) return "tool";
+  return "relic";
+}
+
+function makeItem(type, forcedRarity = null) {
+  if (type === "coin") {
+    const amount = Math.floor(Math.random() * 3) + 1;
+    return {
+      type: "resource", tier: "Resource",
+      name: `Coin ×${amount}`, tags: [],
+      desc: "Spendable wealth. Use it for meaningful purchases rather than everyday expenses."
+    };
+  }
+
+  if (type === "materials") {
+    if (chance(.25)) {
+      return {
+        type:"resource", tier:"Resource", name:"Rare Material ×1", tags:[],
+        desc:"An exceptional material. Decide what it is when the fiction makes its identity relevant."
+      };
+    }
+    const amount = Math.floor(Math.random() * 2) + 2;
+    return {
+      type:"resource", tier:"Resource", name:`Crafting Materials ×${amount}`, tags:[],
+      desc:"Useful timber, leather, metal and salvage for repairs or upgrades."
+    };
+  }
+
+  const rarity = forcedRarity || getRarity();
+
+  if (rarity === "Legendary") {
+    const subtype = pick(["weapon","armour","tool","relic"]);
+    const name = pick(names[subtype]);
+    const tags = pick(tagSets[subtype]);
+    return {
+      type: "legendary", tier: "Legendary", name, tags,
+      desc: `A unique ${subtype} whose history should become part of the campaign.`,
+      ability: pick(legendaryAbilities)
+    };
+  }
+
+  const source = type === "relic" ? data.relics :
+                 type === "weapon" ? data.weapons :
+                 type === "armour" ? data.armour :
+                 data.tools;
+
+  const base = pick(source);
+  let ability = null;
+
+  if (rarity === "Rare") {
+    ability = "Once per scene, when its qualities give you a clear fictional advantage, take +1 momentum after a successful Secure an Advantage.";
+  }
+
+  return {
+    type, tier: rarity, name: base[0], tags: base[1],
+    desc: base[2], ability
+  };
+}
+
+function storyFor(item, location) {
+  if (item.type === "resource") return null;
+
+  const origins = ["local", "foreign", "ancient", "royal", "religious", "unknown"];
+  const reasons = ["stolen", "protected", "forgotten", "dangerous", "waiting for someone", "concealing a secret"];
+  const wants = ["a collector", "a rival faction", "a forgotten descendant", "a powerful lord", "an old enemy", "a secretive order"];
+
+  const locationHint = pick(data.locations[location] || data.locations.mixed);
+  return {
+    origin: pick(origins),
+    reason: pick(reasons),
+    wants: pick(wants),
+    hint: locationHint
+  };
+}
+
+function itemHTML(item, story) {
+  const cls = item.tier.toLowerCase();
+  return `
+    <article class="item">
+      <div class="item-top">
+        <div class="item-name">${esc(item.name)}</div>
+        <span class="badge ${cls}">${esc(item.tier)}</span>
+      </div>
+      ${item.tags.length ? `<div class="tags">${item.tags.map(esc).join(" · ")}</div>` : ""}
+      <p class="desc">${esc(item.desc)}</p>
+      ${item.ability ? `<div class="ability"><strong>Ability:</strong> ${esc(item.ability)}</div>` : ""}
+      ${story ? `
+        <div class="story">
+          <strong>Oracle prompts</strong>
+          <p><b>Origin:</b> ${esc(story.origin)} &nbsp; <b>Why hidden:</b> ${esc(story.reason)}</p>
+          <p><b>Who might want it:</b> ${esc(story.wants)} &nbsp; <b>Location clue:</b> ${esc(story.hint)}</p>
+        </div>
+      ` : ""}
+    </article>`;
+}
+
+function generateBox(index) {
+  const location = document.getElementById("location").value;
+  const size = document.getElementById("size").value;
+  const count = size === "small" ? 2 : size === "large" ? 5 : 3;
+  const rarityChoice = selectedRarity();
+
+  const items = [];
+  for (let i = 0; i < count; i++) {
+    const type = rollLootType();
+
+    if (type === "coin" || type === "materials") {
+      items.push(makeItem(type));
+    } else {
+      items.push(makeItem(type, rarityChoice === "random" ? null :
+        rarityChoice === "common" ? "Common" :
+        rarityChoice === "superior" ? "Rare" : "Legendary"));
+    }
+  }
+
+  const stories = items.map(i => storyFor(i, location));
+  const legendaryCount = items.filter(i => i.tier === "Legendary").length;
+  const rareCount = items.filter(i => i.tier === "Rare").length;
+  const commonCount = items.filter(i => i.tier === "Common").length;
+
+  return `
+    <section class="box">
+      <div class="box-head">
+        <h2>Loot Box</h2>
+        <div class="box-number">Discovery #${index}</div>
+      </div>
+      <div class="loot-list">
+        ${items.map((item, i) => itemHTML(item, stories[i])).join("")}
+      </div>
+      <div class="summary">
+        <span>${count} discoveries</span>
+        <span>${commonCount} common</span>
+        <span>${rareCount} rare</span>
+        <span>${legendaryCount} legendary</span>
+      </div>
+    </section>`;
+}
+
+function generateBoxes() {
+  let n = Math.max(1, Math.min(20, Number(document.getElementById("boxes").value) || 1));
+  document.getElementById("boxes").value = n;
+  document.getElementById("results").innerHTML =
+    Array.from({length:n}, (_, i) => generateBox(i + 1)).join("");
+}
+
+function generateOneLegendary() {
+  const subtype = pick(["weapon","armour","tool","relic"]);
+  const item = makeItem(subtype, "Legendary");
+  const location = document.getElementById("location").value;
+  const story = storyFor(item, location);
+  document.getElementById("results").innerHTML = `
+    <section class="box">
+      <div class="box-head">
+        <h2>Legendary Discovery</h2>
+        <div class="box-number">Unique Item</div>
+      </div>
+      <div class="loot-list">${itemHTML(item, story)}</div>
+    </section>`;
+}
+</script>
+</body>
+</html>
